@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#123b5d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>국소배기장치 필요환기량 계산기</title>
+<style>
+:root{--navy:#071522;--blue:#2f8cff;--bg:#0b1118;--line:#283746;--muted:#a1b0c0;--green:#43d9a3}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(ellipse at top,#172838 0%,#0b1118 58%);font-family:system-ui,-apple-system,"Malgun Gothic",sans-serif;color:#e7eef6;min-height:100vh}
+header{background:linear-gradient(135deg,#080f17,#10283d 58%,#123b5d);color:#f5f9ff;padding:24px 18px;border-bottom:1px solid #2b465e}
+.wrap{max-width:760px;margin:auto}
+h1{font-size:clamp(22px,4vw,30px);margin:0 0 6px}
+.subtitle{opacity:.86;font-size:14px}
+main{max-width:760px;margin:18px auto;padding:0 14px 36px}
+.card{background:#121c27;border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 8px 28px #00000025}
+h2{font-size:17px;margin:0 0 15px}
+label{display:block;font-size:14px;font-weight:650;margin-bottom:7px}
+select,input{width:100%;border:1px solid #35485a;border-radius:10px;padding:12px;font-size:16px;background:#0c141d;color:#e7eef6;color-scheme:dark}
+.field{margin-bottom:14px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.note{font-size:13px;color:var(--muted);line-height:1.55}
+.formula{background:#102638;border:1px solid #244b67;border-radius:12px;padding:13px;margin-bottom:14px}
+.formula strong{display:block;color:#83c7ff;font-size:18px;margin:4px 0}
+button{border:0;border-radius:10px;padding:13px 16px;font-size:15px;font-weight:700;cursor:pointer}
+.primary{background:var(--blue);color:white;width:100%}
+.secondary{background:#263747;color:#edf5ff;border:1px solid #3b5266}
+.result{background:#102820;border:1px solid #27624d;border-radius:14px;padding:16px}
+.result-label{font-size:13px;color:#a4c9b8}
+.big{font-size:clamp(26px,6vw,36px);font-weight:800;color:var(--green);margin:5px 0}
+.result-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.warning{background:#2a2417;border:1px solid #69532b;border-radius:10px;padding:12px;font-size:13px;line-height:1.55;color:#f0dcae}
+.hidden{display:none}
+footer{font-size:12px;color:var(--muted);text-align:center;padding:8px 12px 28px}
+@media(max-width:480px){.grid{grid-template-columns:1fr}.card{padding:15px}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<h1>국소배기장치 필요환기량 계산기</h1>
+<div class="subtitle">Local Exhaust Ventilation · 계산 보조 웹앱</div>
+</div></header>
+<main>
+<section class="card">
+<h2>1. 후드 종류</h2>
+<div class="field">
+<label for="hood">후드 형식</label>
+<select id="hood">
+<option value="booth">부스식 후드</option>
+<option value="external_general">외부식 후드 - 일반형</option>
+<option value="external_flanged">외부식 후드 - 플랜지 일반형</option>
+<option value="slot">외부식 후드 - 슬롯형</option>
+<option value="flanged_slot">외부식 후드 - 플랜지 슬롯형</option>
+<option value="canopy">캐노피 후드</option>
+</select>
+</div>
+<div class="field" id="openingWrap">
+<label for="opening">후드 개구부 형태</label>
+<select id="opening">
+<option value="rect">직사각형</option>
+<option value="round">원형</option>
+<option value="slot">슬롯형 개구부</option>
+</select>
+</div>
+<p class="note">선택한 후드 종류에 따라 입력 항목과 적용 공식이 달라집니다.</p>
+</section>
+
+<section class="card">
+<h2>2. 설계 변수 입력</h2>
+<p class="note">길이·거리·지름·둘레는 cm로 입력합니다. 속도는 m/s 기준입니다.</p>
+<div class="formula">
+<div class="note">현재 구현된 계산식 · 부스식 개구면 기준</div>
+<strong>Q = V × A × 60</strong>
+<div class="note">Q: m³/min · V: 개구면 평균 유입속도(m/s) · A: 개구면적(m²)</div>
+</div>
+<div id="boothFields">
+<div class="field"><label for="velocity">개구면 평균 유입속도 (m/s)</label><input id="velocity" type="number" min="0" step="any" value="0.5"></div>
+<div class="grid">
+<div class="field"><label for="width">개구부 가로 (cm)</label><input id="width" type="number" min="0" step="any" value="120"></div>
+<div class="field"><label for="height">개구부 높이 (cm)</label><input id="height" type="number" min="0" step="any" value="100"></div>
+</div>
+</div>
+<div id="otherFields" class="hidden">
+<div class="warning">이 후드 유형은 후드 형상, 오염원과의 거리, 제어속도 등 조건에 맞는 공식을 선택해야 합니다. 검증된 설계식이 설정되기 전에는 계산 결과를 표시하지 않습니다.</div>
+</div>
+<button class="primary" id="calculate">필요 환기량 계산</button>
+</section>
+
+<section class="card">
+<h2>3. 계산 결과</h2>
+<div id="empty" class="note">설계 변수를 입력하고 계산 버튼을 누르세요.</div>
+<div id="result" class="result hidden">
+<div class="result-label">필요 환기량 Q</div>
+<div class="big" id="qmin">— m³/min</div>
+<div class="result-row">
+<div><div class="result-label">시간당 환기량</div><strong id="qhour">— m³/h</strong></div>
+<button class="secondary" id="copy">계산 결과 복사</button>
+</div>
+<hr style="border:0;border-top:1px solid #285342;margin:14px 0">
+<div class="note" id="calculationText"></div>
+</div>
+</section>
+<div class="warning"><strong>설계 유의사항</strong><br>이 웹앱은 초기 시제품입니다. 실제 설계에는 오염물질 특성, 후드 형식, 적용 가능한 산업환기 설계기준, 덕트 압력손실 및 송풍기 성능을 별도로 검토해야 합니다. 표시되는 계산식은 적용 조건이 확인된 경우에만 사용하세요.</div>
+</main>
+<footer>국소배기장치 필요환기량 계산기 · 프로토타입</footer>
+<script>
+const $ = id => document.getElementById(id);
+function updateType(){
+ const booth = $('hood').value === 'booth';
+ $('boothFields').classList.toggle('hidden',!booth);
+ $('otherFields').classList.toggle('hidden',booth);
+ $('openingWrap').classList.toggle('hidden',!booth);
+ $('result').classList.add('hidden');
+ $('empty').classList.remove('hidden');
+}
+$('hood').addEventListener('change',updateType);
+$('calculate').addEventListener('click',()=>{
+ if($('hood').value !== 'booth'){
+   alert('선택한 후드의 공식과 설계 조건을 확인한 뒤 계산 기능을 추가해야 합니다.');
+   return;
+ }
+ const v=Number($('velocity').value), w=Number($('width').value), h=Number($('height').value);
+ if(!Number.isFinite(v)||!Number.isFinite(w)||!Number.isFinite(h)||v<=0||w<=0||h<=0){
+   alert('모든 입력값에 0보다 큰 숫자를 입력해 주세요.'); return;
+ }
+ const area=(w/100)*(h/100);
+ const q=v*area*60;
+ $('qmin').textContent=q.toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1})+' m³/min';
+ $('qhour').textContent=(q*60).toLocaleString('ko-KR',{minimumFractionDigits:1,maximumFractionDigits:1})+' m³/h';
+ $('calculationText').textContent=`개구면적 = (${w}/100) × (${h}/100) = ${area.toFixed(4)} m² · Q = ${v} × ${area.toFixed(4)} × 60 = ${q.toFixed(1)} m³/min`;
+ $('result').classList.remove('hidden'); $('empty').classList.add('hidden');
+});
+$('copy').addEventListener('click',async()=>{
+ const text=`국소배기장치 필요환기량 계산 결과\n후드 종류: 부스식\n속도: ${$('velocity').value} m/s\n가로: ${$('width').value} cm\n높이: ${$('height').value} cm\n필요 환기량: ${$('qmin').textContent}\n시간당 환기량: ${$('qhour').textContent}\n${$('calculationText').textContent}`;
+ try{await navigator.clipboard.writeText(text);alert('계산 결과를 복사했습니다.');}
+ catch(e){window.prompt('아래 결과를 복사하세요.',text);}
+});
+</script>
+<script>
+if ("serviceWorker" in navigator && location.protocol !== "file:") {
+  window.addEventListener("load", () => navigator.serviceWorker.register("./service-worker.js").catch(console.error));
+}
+</script>
+</body>
+</html>
